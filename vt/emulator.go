@@ -236,6 +236,14 @@ func (e *Emulator) Resize(width int, height int) {
 		}
 	}
 
+	// When the main screen gets shorter than the cursor line, scroll its top
+	// lines into the scrollback so the cursor line stays on screen, like
+	// xterm does, instead of cutting off the bottom lines.
+	if n := y - (height - 1); n > 0 && height > 0 && e.scr == &e.scrs[0] {
+		e.scr.scroll = e.scr.buf.Bounds()
+		e.scr.ScrollUp(n)
+		y -= n
+	}
 	if y < 0 {
 		y = 0
 	}
