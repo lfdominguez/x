@@ -1,7 +1,10 @@
 package vt
 
 import (
+	"strconv"
 	"testing"
+
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 func TestScrollback(t *testing.T) {
@@ -63,6 +66,23 @@ func TestScrollback(t *testing.T) {
 
 		if sb.Len() != 5 {
 			t.Errorf("expected len 5 after overflow, got %d", sb.Len())
+		}
+	})
+
+	t.Run("full scrollback keeps the newest lines in order", func(t *testing.T) {
+		sb := NewScrollback(5)
+		for i := range 12 {
+			sb.Push(uv.Line{{Content: strconv.Itoa(i), Width: 1}})
+		}
+
+		if sb.Len() != 5 {
+			t.Fatalf("expected len 5, got %d", sb.Len())
+		}
+		for i := range 5 {
+			want := strconv.Itoa(7 + i)
+			if got := sb.CellAt(0, i).Content; got != want {
+				t.Errorf("line %d: expected %q, got %q", i, want, got)
+			}
 		}
 	})
 
@@ -163,4 +183,18 @@ func TestScrollback(t *testing.T) {
 			t.Errorf("expected empty scrollback after ED 3, got %d", e.ScrollbackLen())
 		}
 	})
+}
+
+func BenchmarkScrollbackPushFull(b *testing.B) {
+	sb := NewScrollback(DefaultScrollbackSize)
+	line := uv.NewLine(80)
+	for i := range line {
+		line[i] = uv.Cell{Content: "x", Width: 1}
+	}
+	for range DefaultScrollbackSize {
+		sb.Push(line)
+	}
+	for b.Loop() {
+		sb.Push(line)
+	}
 }

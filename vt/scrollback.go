@@ -48,8 +48,11 @@ func (s *Scrollback) Push(line uv.Line) {
 	cloned := slices.Clone(line[:lastNonEmpty+1])
 
 	if len(s.lines) >= s.maxLines {
-		// Remove oldest line and append new one
-		s.lines = slices.Delete(s.lines, 0, 1)
+		// Drop the oldest line by reslicing instead of shifting every line
+		// down. append only reallocates (and copies) once the capacity runs
+		// out, so a push on a full scrollback is amortized O(1).
+		s.lines[0] = nil
+		s.lines = s.lines[1:]
 	}
 	s.lines = append(s.lines, cloned)
 }
